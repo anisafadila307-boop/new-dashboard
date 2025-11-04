@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portal Informasi Kopi Indonesia (Gabungan)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    /* Variabel Warna Global (Diambil dari 2dashboard_internal.html & 3form_input.html) */
+    :root {
+      --bg:#f7f3ef; 
+      --card:#ffffff; 
+      --accent:#6b4226; 
+      --accent-2:#8b5e3c; 
+      --muted:#6b6b6b; 
+      --brown1:#3e2723; 
+      --brown2:#4e342e;
+      --brown3:#5d4037; 
+      --light:#f6f3f0; 
+      --card-form:#fffaf7;
+    }
+
+    *{box-sizing:border-box}
+    /* Base Body Styling */
+    body{
+      margin:0;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: var(--bg);
+      color: #222;
+      min-height: 100vh;
+      display: flex; 
+      flex-direction: column;
+    }
+
+    /* ===== Header (Dashboard/Public) ===== */
+    header {
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header .left { display: flex; align-items: center; gap: 12px; }
+    header img { height: 42px; }
+    header h1 { margin: 0; font-size: 18px; color: #fff; }
+    header .right { display: flex; align-items: center; gap: 10px; }
+
+    .btn-header {
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.3s;
+    }
+    .btn-header:hover { background: rgba(255, 255, 255, 0.3); }
+    
+    /* Tombol Utama */
+    .btn-kopi {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.3s;
+      font-weight: 600;
+    }
+    .btn-kopi:hover { background: var(--accent-2); }
+    .btn-kopi-muted {
+      background: #ccc;
+      color: #333;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.3s;
+      font-weight: 600;
+    }
+    .btn-kopi-muted:hover { background: #bbb; }
+
+
+    /* ===== Dashboard Internal Navigation & Content ===== */
+    nav.dashboard-nav {
+      max-width: 980px;
+      margin: 20px auto 0 auto;
+      padding: 0 16px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .nav-link {
+      background: var(--card);
+      border: 1px solid #eee;
+      color: var(--brown1);
+      padding: 8px 16px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .nav-link.active {
+      background: var(--brown1);
+      color: var(--card);
+      border-color: var(--brown1);
+    }
+    
+    .nav-link:not(.active):hover { background: #f0f0f0; }
+
+    main.dashboard-content {
+      max-width: 980px;
+      margin: 0 auto 40px auto;
+      padding: 0 16px;
+      flex: 1;
+    }
+
+    /* Internal Dashboard Tabs (home, produk, input) */
+    .page {
+      background: var(--card);
+      border-radius: 0 12px 12px 12px;
+      box-shadow: 0 6px 18px rgba(20, 20, 20, 0.06);
+      padding: 24px;
+      display: none;
+    }
+    .page.active { display: block; }
+    
+    /* Kontainer Halaman Utama (Login, Dashboard, Detail) */
+    .main-page { min-height: 100vh; width: 100%; }
+    .main-page.hidden { display: none !important; }
+
+    /* Login/Public Card */
+    #pageLogin .container{max-width:980px;margin:28px auto;padding:0 16px}
+    #pageLogin .card{background:var(--card); border-radius:12px; box-shadow:0 6px 18px rgba(20,20,20,0.06); padding:18px}
+
+
+    /* ===== Card/List Styles (Dari int_*.html) ===== */
+    .product-list-container {
+      background: var(--light); 
+      color: var(--brown1);
+      padding: 20px 0;
+      /* Style untuk override background .page jika digunakan sebagai content list */
+      border-radius: 12px; 
+      box-shadow: none; 
+      min-height: 500px;
+    }
+
+    .product-list-container h1{text-align:center;color:#6b4226;}
+    .product-list-container p.desc{text-align:center;color:#5d4037;margin-bottom: 20px;}
+
+    .card {
+      background: white;
+      padding: 15px 20px 20px 20px;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      margin: 10px 0;
+      transition: transform 0.15s, box-shadow 0.2s;
+      text-align: center;
+      max-width: 320px; 
+      min-height: 400px; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: space-between; 
+    }
+
+    .card img {
+      width: 100%; 
+      height: 200px; 
+      object-fit: cover; 
+      border-radius: 10px;
+      margin: 10px auto;
+      display: block;
+    }
+    .card:hover{
+      transform:translateY(-3px);
+      box-shadow:0 5px 15px rgba(0,0,0,0.15);
+    }
+    
+    .list-grid-container {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px !important;
+      padding: 20px !important;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+
+    /* ===== Form Input Styles (Dari 3form_input.html) ===== */
+    .form-container {
+      max-width: 960px;
+      margin: auto;
+      padding: 30px 20px 60px;
+      font-family:"Poppins",sans-serif;
+    }
+    .form-container h1{text-align:center;margin-bottom:10px;}
+    .form-container p.subtitle{text-align:center;color:var(--brown2);}
+    .form-style {
+      background:var(--card-form);
+      border-radius:16px;
+      box-shadow:0 6px 20px rgba(0,0,0,0.08);
+      padding:24px;
+      display:grid;
+      gap:12px;
+      margin-top:24px;
+    }
+    .form-style label{font-weight:600;font-size:14px;}
+    .form-style input, .form-style select, .form-style textarea{
+      width:100%;padding:10px 12px;
+      border:1px solid #ddd;border-radius:8px;
+      font-family:inherit;font-size:14px;
+    }
+    .form-style textarea{min-height:70px;}
+    .form-style input[type=file]{border:none;}
+    .form-style button[type=submit]{ margin-top: 10px; }
+    .preview{max-width:100%;max-height:180px;display:block;margin-top:6px;border-radius:8px;}
+    .jenis-btns { display:flex;justify-content:center;gap:10px;margin-top:8px; }
+    .jenis-btns button { flex:1; }
+    .jenis-btns button.selected { background: var(--accent-2); }
+    .jenis-btns button:hover:not(.selected) { background: var(--brown3); }
+    .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .input-row { grid-template-columns: 1fr; } }
+
+
+    /* ===== Detail Page Styles (Dari detail_produk_dinamis.html) ===== */
+    .detail-premium-style {
+      background: linear-gradient(180deg,#071029 0%,#071827 60%);
+      color:#e6eef8;
+      font-family: 'Segoe UI', sans-serif;
+      min-height:100vh; padding:40px 20px;
+      background-size: cover !important; /* Untuk gambar latar belakang */
+      background-position: center !important;
+    }
+    .container-prem { max-width:1100px; margin:0 auto; }
+    header.hero { display:flex; gap:20px; align-items:center; }
+    .img-hero{ width:140px; height:140px; border-radius:10px; object-fit:cover; box-shadow:0 8px 30px rgba(0,0,0,0.6); border:2px solid rgba(255,255,255,0.03); }
+    .badge { background: rgba(255,255,255,0.03); padding:6px 10px; border-radius:999px; color:#94a3b8; font-size:13px; display:inline-block; }
+    h1.pm-title { margin:0; font-size:22px; color:#fff; }
+    .sub { color:#94a3b8; margin-top:6px; }
+    .meta-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; }
+    .pill { background: rgba(255,255,255,0.03); padding:6px 10px; border-radius:999px; font-size:13px; color:#e6eef8; }
+    .grid { display:grid; grid-template-columns:1fr 360px; gap:20px; margin-top:22px; align-items:start; }
+    .card-dark { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:18px; border-radius:12px; box-shadow:0 6px 18px rgba(2,6,23,0.6); color:inherit; }
+    .card-dark h3{ margin:0 0 12px 0; color:#fff; }
+    dl { display:grid; grid-template-columns:140px 1fr; gap:8px 16px; color:#e6eef8; }
+    dt { color:#94a3b8; font-size:13px; }
+    dd { margin:0; }
+    footer.pm-foot { margin-top:18px; color:#94a3b8; font-size:13px; text-align:center; }
+    @media (max-width:900px){ .grid{ grid-template-columns:1fr; } }
+    .back-prem { background:#081018; color:#e6eef8; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; margin-bottom:14px; }
+    
+    /* Overlay/Modal (Dari index.html) */
+    .overlay{position:fixed; inset:0;background:rgba(10,10,10,0.45); display:flex; align-items:center; justify-content:center; z-index:60}
+    .modal{width:100%; max-width:420px; background:var(--card); border-radius:12px; padding:18px; box-shadow:0 10px 30px rgba(10,10,10,0.15)}
+    .modal h2{margin:0 0 12px 0}
+    .form-row{display:flex; flex-direction:column; gap:8px}
+    input[type=text], input[type=password]{padding:10px; border-radius:8px; border:1px solid #ddd}
+    .small{font-size:13px;color:var(--muted)}
+    footer{max-width:980px;margin:22px auto;padding:0 16px; color:var(--muted); font-size:13px; text-align:center;}
+  </style>
+</head>
+
+<body>
+
+<div id="pageLogin" class="main-page">
+    <header>
+      <div class="left">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_x1N_q6zYg9vY0y-t_O_3w_5k-l8jA8F34A&s" alt="Logo Kopi Indonesia" />
+        <h1>Portal Informasi Kopi Indonesia</h1>
+      </div>
+      <div class="right">
+        <button class="btn-header" onclick="openLoginModal()">Masuk Dashboard Internal</button>
+      </div>
+    </header>
+    <main class="container">
+      <div class="card">
+        <h2 style="text-align:center; color:var(--brown1); font-family:'Lora',serif;">Selamat Datang di Portal Informasi Kopi Indonesia</h2>
+        <p style="text-align:center; color:var(--muted)">Jelajahi keanekaragaman dan keunggulan biji kopi dari seluruh Nusantara.</p>
+
+        <div style="margin-top: 20px;">
+          <div id="publicProdukList" class="list-grid-container">
+            </div>
+          <div style="text-align: center; margin-top: 20px; color: var(--muted);" id="listPublicMessage">Memuat data produk...</div>
+        </div>
+      </div>
+    </main>
+    <footer>© 2024 Portal Informasi Kopi Indonesia. All rights reserved.</footer>
+
+    <template id="modalTemplate">
+      <div class="overlay">
+        <div class="modal">
+          <h2>Masuk ke Dashboard</h2>
+          <form id="loginForm">
+            <div class="form-row">
+              <label for="loginUser">Username:</label>
+              <input type="text" name="username" id="loginUser" required placeholder="admin" />
+            </div>
+            <div class="form-row" style="margin-top: 10px;">
+              <label for="loginPass">Password:</label>
+              <input type="password" name="password" id="loginPass" required placeholder="••••••" />
+              <p class="small">Default: admin / kopi123</p>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:20px; justify-content:flex-end">
+              <button type="button" id="loginCancel" class="btn-kopi" style="background:transparent; color:var(--accent-2); border:1px dashed rgba(107,66,38,0.5); font-weight:400">Batal</button>
+              <button type="submit" class="btn-kopi">Masuk</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </template>
+</div>
+
+
+<div id="pageDashboard" class="main-page hidden" style="flex-direction: column; display: flex;">
+    <header>
+      <div class="left">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_x1N_q6zYg9vY0y-t_O_3w_5k-l8jA8F34A&s" alt="Logo Kopi Indonesia" />
+        <h1>Dashboard Produk Kopi</h1>
+      </div>
+      <div class="right">
+        <button class="btn-header" onclick="navigateToInput()">➕ Input Produk</button>
+        <button class="btn-header" onclick="logout()">Keluar</button>
+      </div>
+    </header>
+
+    <nav class="dashboard-nav">
+      <div id="navHome" class="nav-link active" onclick="navigateDashboard('home')">Beranda</div>
+      <div id="navProduk" class="nav-link" onclick="navigateDashboard('produk')">Produk Kopi</div>
+      <div id="navInput" class="nav-link" onclick="navigateDashboard('input')">Input Produk Baru</div>
+    </nav>
+    
+    <main class="dashboard-content">
+      
+      <div id="home" class="page active">
+        <h2 style="text-align:center; font-family:'Lora',serif; color:var(--brown1)">Selamat Datang di Dashboard Internal</h2>
+        <p style="text-align:center; color:var(--muted)">Kelola data produk kopi Indonesia Anda dengan mudah.</p>
+        
+        <div style="margin-top: 30px;">
+          <h3 style="color:var(--accent)">Statistik Ringkas</h3>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div class="card" style="min-height: auto; padding: 15px; text-align: left;">
+              <p style="margin: 0; font-size: 14px; color: var(--muted);">Total Produk</p>
+              <h2 id="statsTotal" style="margin: 5px 0 0 0; color: var(--brown1);">0</h2>
+            </div>
+            <div class="card" style="min-height: auto; padding: 15px; text-align: left;">
+              <p style="margin: 0; font-size: 14px; color: var(--muted);">Biji Mentah</p>
+              <h2 id="statsMentah" style="margin: 5px 0 0 0; color: var(--brown1);">0</h2>
+            </div>
+            <div class="card" style="min-height: auto; padding: 15px; text-align: left;">
+              <p style="margin: 0; font-size: 14px; color: var(--muted);">Biji Roasted</p>
+              <h2 id="statsRoasted" style="margin: 5px 0 0 0; color: var(--brown1);">0</h2>
+            </div>
+            <div class="card" style="min-height: auto; padding: 15px; text-align: left;">
+              <p style="margin: 0; font-size: 14px; color: var(--muted);">Kopi Bubuk</p>
+              <h2 id="statsBubuk" style="margin: 5px 0 0 0; color: var(--brown1);">0</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="produk" class="page">
+        <h2 style="text-align:center; font-family:'Lora',serif; color:var(--brown1)">Informasi Produk Kopi</h2>
+        <p style="text-align:center; color:var(--muted)">Pilih kategori produk yang ingin Anda jelajahi.</p>
+        <div class="jenis-kopi" style="display:flex; justify-content:center; gap:20px; margin-top:25px;">
+          <button class="btn-kopi" onclick="navigateDashboard('pageIntMentah')">
+            Biji Kopi Mentah
+          </button>
+          <button class="btn-kopi" onclick="navigateDashboard('pageIntRoasted')">
+            Biji Kopi Roasted
+          </button>
+          <button class="btn-kopi" onclick="navigateDashboard('pageIntBubuk')">
+            Kopi Bubuk
+          </button>
+        </div>
+      </div>
+      
+      <div id="input" class="page">
+        <div class="form-container" style="padding: 0 0 0 0;">
+          <h1 id="formTitle">Input Informasi Produk Kopi Lengkap</h1>
+          <p class="subtitle">Lengkapi detail produk kopi baru Anda.</p>
+          <form id="produkForm" class="form-style">
+            <input type="hidden" id="jenis" name="jenis" required>
+            <div class="form-row">
+              <label>Jenis Kopi (Pilih salah satu):</label>
+              <div class="jenis-btns">
+                <button type="button" id="btnMentah" data-jenis="Biji Kopi Mentah">Biji Mentah</button>
+                <button type="button" id="btnRoasted" data-jenis="Biji Kopi Roasted">Roasted</button>
+                <button type="button" id="btnBubuk" data-jenis="Kopi Bubuk">Kopi Bubuk</button>
+              </div>
+            </div>
+            <div class="input-row">
+              <div class="form-row">
+                <label for="nama">Nama Produk:</label>
+                <input type="text" id="nama" name="nama" required placeholder="Contoh: Arabika Gayo A-Grade" />
+              </div>
+              <div class="form-row">
+                <label for="asal">Asal Daerah:</label>
+                <input type="text" id="asal" name="asal" required placeholder="Contoh: Aceh" />
+              </div>
+            </div>
+            <div class="input-row">
+              <div class="form-row">
+                <label for="grade">Grade/Kualitas:</label>
+                <input type="text" id="grade" name="grade" placeholder="Contoh: Grade 1 (Green Bean), Premium (Roasted)" />
+              </div>
+              <div class="form-row">
+                <label for="harga">Harga (per kg/satuan):</label>
+                <input type="text" id="harga" name="harga" required placeholder="Contoh: Rp120.000" />
+              </div>
+            </div>
+            <div class="input-row">
+              <div class="form-row">
+                <label for="moisture">Kadar Air (Moisture):</label>
+                <input type="text" id="moisture" name="moisture" placeholder="Contoh: 11.5% (khusus biji mentah)" />
+              </div>
+              <div class="form-row">
+                <label for="defect">Defect Rate:</label>
+                <input type="text" id="defect" name="defect" placeholder="Contoh: Max 5 (khusus biji mentah)" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="ukuran">Ukuran Biji/Gilingan:</label>
+              <input type="text" id="ukuran" name="ukuran" placeholder="Contoh: Mesh 17-18 (Biji), Medium Grind (Bubuk)" />
+            </div>
+            <div class="form-row">
+              <label for="deskripsi">Deskripsi Singkat:</label>
+              <textarea id="deskripsi" name="deskripsi" required placeholder="Deskripsi umum produk, proses pasca-panen, dll."></textarea>
+            </div>
+            <div class="form-row">
+              <label for="aroma">Catatan Aroma/Flavour Notes:</label>
+              <input type="text" id="aroma" name="aroma" placeholder="Contoh: Floral, Citrus, Spicy, Dark Chocolate" />
+            </div>
+            <div class="form-row">
+              <label for="rasa">Catatan Rasa (Taste):</label>
+              <input type="text" id="rasa" name="rasa" placeholder="Contoh: Manis, Pahit, Asam, Seimbang" />
+            </div>
+            <div class="input-row">
+              <div class="form-row">
+                <label for="keasaman">Keasaman (Acidity):</label>
+                <select id="keasaman" name="keasaman" required>
+                  <option value="">Pilih Tingkat Keasaman</option>
+                  <option value="Tinggi">Tinggi</option>
+                  <option value="Sedang">Sedang</option>
+                  <option value="Rendah">Rendah</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="body">Body (Kekentalan):</label>
+                <select id="body" name="body" required>
+                  <option value="">Pilih Tingkat Body</option>
+                  <option value="Penuh">Penuh (Full Body)</option>
+                  <option value="Sedang">Sedang (Medium Body)</option>
+                  <option value="Ringan">Ringan (Light Body)</option>
+                </select>
+              </div>
+            </div>
+            <div class="input-row">
+              <div class="form-row">
+                <label for="gambarProfilFile">Gambar Profil (Wajib):</label>
+                <input type="file" id="gambarProfilFile" accept="image/*" />
+                <img id="previewProfil" class="preview" style="display:none;" />
+              </div>
+              <div class="form-row">
+                <label for="gambarBgFile">Gambar Latar Belakang (Opsional):</label>
+                <input type="file" id="gambarBgFile" accept="image/*" />
+                <img id="previewBg" class="preview" style="display:none;" />
+              </div>
+            </div>
+            <button type="submit" id="submitButton">Simpan Produk</button>
+            <button type="button" id="cancelButton" onclick="navigateDashboard('home')" style="background:transparent; color:var(--brown2); border:1px solid var(--brown2)">Batal</button>
+          </form>
+        </div>
+      </div>
+
+      <div id="pageIntMentah" class="page product-list-container" style="display: none; padding: 20px 0;">
+        <h1>Biji Kopi Mentah (Internal)</h1>
+        <p class="desc">Informasi lengkap mengenai biji kopi mentah. Anda dapat mengedit/menghapus produk di sini.</p>
+        <div class="list-grid-container" id="produkListMentah">
+          </div>
+        <div style="text-align:center; margin-top: 20px;">
+          <a class="btn-kopi" onclick="navigateToInput('Biji Kopi Mentah')">➕ Tambah Produk Mentah Baru</a>
+          <a class="btn-kopi-muted" onclick="navigateDashboard('produk')">← Kembali ke Menu Produk</a>
+        </div>
+      </div>
+      
+      <div id="pageIntRoasted" class="page product-list-container" style="display: none; padding: 20px 0;">
+        <h1>Biji Kopi Roasted (Internal)</h1>
+        <p class="desc">Informasi lengkap mengenai biji kopi roasted. Anda dapat mengedit/menghapus produk di sini.</p>
+        <div class="list-grid-container" id="produkListRoasted">
+          </div>
+        <div style="text-align:center; margin-top: 20px;">
+          <a class="btn-kopi" onclick="navigateToInput('Biji Kopi Roasted')">➕ Tambah Produk Roasted Baru</a>
+          <a class="btn-kopi-muted" onclick="navigateDashboard('produk')">← Kembali ke Menu Produk</a>
+        </div>
+      </div>
+      
+      <div id="pageIntBubuk" class="page product-list-container" style="display: none; padding: 20px 0;">
+        <h1>Kopi Bubuk (Internal)</h1>
+        <p class="desc">Informasi lengkap mengenai kopi bubuk. Anda dapat mengedit/menghapus produk di sini.</p>
+        <div class="list-grid-container" id="produkListBubuk">
+          </div>
+        <div style="text-align:center; margin-top: 20px;">
+          <a class="btn-kopi" onclick="navigateToInput('Kopi Bubuk')">➕ Tambah Produk Bubuk Baru</a>
+          <a class="btn-kopi-muted" onclick="navigateDashboard('produk')">← Kembali ke Menu Produk</a>
+        </div>
+      </div>
+
+    </main>
+    <footer>© 2024 Dashboard Internal Kopi Indonesia.</footer>
+</div>
+
+<div id="pageDetail" class="main-page hidden detail-premium-style">
+  <div class="container-prem">
+    <button class="back-prem" id="btnKembaliDetail">← Kembali ke Daftar Produk</button>
+    <header class="hero">
+      <img id="detailImg" class="img-hero" src="" alt="Gambar Produk" />
+      <div>
+        <span id="detailJenis" class="badge"></span>
+        <h1 id="detailNama" class="pm-title"></h1>
+        <p id="detailAsal" class="sub"></p>
+        <div class="meta-row" id="metaContainer">
+          </div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div>
+        <div class="card-dark">
+          <h3>Deskripsi Produk</h3>
+          <p id="detailDeskripsi" style="white-space: pre-wrap;"></p>
+        </div>
+        
+        <div class="card-dark" style="margin-top:20px;">
+          <h3>Profil Rasa (Grafik Radar)</h3>
+          <div style="max-width:400px; margin:0 auto; padding: 10px 0;">
+            <canvas id="flavorChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="side-col">
+        
+        <div class="card-dark">
+          <h3>Detail Teknis</h3>
+          <dl id="detailList">
+            </dl>
+        </div>
+        
+        <div class="card-dark" style="margin-top:20px; text-align:center;">
+          <h3>Akses Cepat (QR Code)</h3>
+          <p style="font-size:13px; color:#94a3b8; margin: 5px 0 10px;">Pindai untuk melihat informasi publik produk ini.</p>
+          <div id="qrContainer" style="display:inline-block; background:white; padding:10px; border-radius:10px;"></div>
+          <div id="downloadContainer" style="margin-top:15px;"></div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <footer class="pm-foot">Data diperbarui: <span id="detailTanggal"></span></footer>
+  </div>
+</div>
+
+
+<script>
+const LS_KEY = 'produkKopiLengkap_v3';
+let data = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+let chartInstance = null;
+let currentPage = 'pageLogin'; 
+let lastDashboardPage = 'home'; 
+
+// --- 1. Global Page Switching (SPA Logic) ---
+function switchPage(targetId) {
+    document.querySelectorAll('.main-page').forEach(p => p.classList.add('hidden'));
+    const target = document.getElementById(targetId);
+    if (target) {
+        target.classList.remove('hidden');
+        currentPage = targetId;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Ubah background body untuk Detail Page
+        document.body.style.background = targetId === 'pageDetail' ? 'none' : 'var(--bg)';
+        document.body.style.fontFamily = targetId === 'pageDetail' ? "'Segoe UI', sans-serif" : '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial';
+
+        // Re-render the lists and stats when switching to the dashboard
+        if (targetId === 'pageDashboard') {
+            updateStats();
+            navigateDashboard(lastDashboardPage);
+        }
+        if (targetId === 'pageLogin') {
+            renderPublicList();
+        }
+    }
+}
+
+// --- 2. Dashboard Internal Navigation ---
+function navigateDashboard(pageId) {
+    // Navigasi ke Halaman Daftar Produk (pageIntMentah, etc.)
+    if (pageId.startsWith('pageInt')) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); // Hide internal tabs
+        
+        const target = document.getElementById(pageId);
+        if (target) {
+            // Show the product list page
+            target.classList.add('active'); // Add active to show it as a page content
+            lastDashboardPage = pageId;
+            renderList(pageId);
+        }
+
+        // Deactivate all nav links, as product lists are nested views
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        return;
+    }
+    
+    // Navigasi ke Tab Internal (home, produk, input)
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById(pageId);
+    if (target) {
+        target.classList.add('active');
+        lastDashboardPage = pageId;
+    }
+
+    // Update Nav Link Active State
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+    const navLink = document.getElementById('nav' + pageId.charAt(0).toUpperCase() + pageId.slice(1));
+    if (navLink) navLink.classList.add('active');
+    
+    // Untuk halaman input, periksa mode edit
+    if (pageId === 'input') {
+        checkEditMode();
+    }
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+
+// --- 3. Login Logic ---
+function openLoginModal(){
+    const tpl = document.getElementById('modalTemplate');
+    const node = tpl.content.cloneNode(true);
+    document.body.appendChild(node);
+    const overlay = document.querySelector('.overlay');
+    const cancel = document.getElementById('loginCancel');
+    cancel.addEventListener('click', closeTopModal);
+    overlay.addEventListener('click', (ev) => { if(ev.target === overlay) closeTopModal(); });
+    function closeTopModal(){ const ov = document.querySelector('.overlay'); if(ov) ov.remove(); }
+}
+
+document.addEventListener('submit', (e) => {
+    if (e.target.id === 'loginForm') {
+        e.preventDefault();
+        const user = document.getElementById('loginUser').value.trim();
+        const pass = document.getElementById('loginPass').value.trim();
+        const validUser = "admin";
+        const validPass = "kopi123";
+
+        if (user === validUser && pass === validPass) {
+            const ov = document.querySelector('.overlay');
+            if (ov) ov.remove();
+            switchPage('pageDashboard');
+        } else {
+            alert("Login Gagal! Username atau password salah.");
+        }
+    }
+});
+
+
+// --- 4. Form Input/Edit Logic ---
+let editMode = localStorage.getItem('editMode') === 'true';
+let editIndex = localStorage.getItem('produkEditIndex') ? parseInt(localStorage.getItem('produkEditIndex')) : null;
+
+function fileToDataUrl(fileInput) {
+  return new Promise((resolve, reject) => {
+    if (!fileInput.files || fileInput.files.length === 0) return resolve(null);
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(fileInput.files[0]);
+  });
+}
+
+function setupImagePreview(fileInputId, previewId) {
+  const fileInput = document.getElementById(fileInputId);
+  const preview = document.getElementById(previewId);
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files && fileInput.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    }
+  });
+}
+setupImagePreview('gambarProfilFile', 'previewProfil');
+setupImagePreview('gambarBgFile', 'previewBg');
+
+document.querySelectorAll('.jenis-btns button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.jenis-btns button').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    document.getElementById('jenis').value = btn.getAttribute('data-jenis');
+  });
+});
+
+function resetForm() {
+    document.getElementById('produkForm').reset();
+    document.getElementById('formTitle').textContent = 'Input Informasi Produk Kopi Lengkap';
+    document.getElementById('submitButton').textContent = 'Simpan Produk';
+    document.querySelectorAll('.jenis-btns button').forEach(b => b.classList.remove('selected'));
+    document.getElementById('jenis').value = '';
+    document.getElementById('previewProfil').src = '';
+    document.getElementById('previewProfil').style.display = 'none';
+    document.getElementById('previewBg').src = '';
+    document.getElementById('previewBg').style.display = 'none';
+}
+
+function checkEditMode() {
+  const editData = JSON.parse(localStorage.getItem('produkEdit'));
+  editMode = localStorage.getItem('editMode') === 'true';
+  editIndex = localStorage.getItem('produkEditIndex') ? parseInt(localStorage.getItem('produkEditIndex')) : null;
+  
+  const formTitle = document.getElementById('formTitle');
+  const submitButton = document.getElementById('submitButton');
+  
+  if (editMode && editData) {
+    formTitle.textContent = `Edit Produk: ${editData.nama}`;
+    submitButton.textContent = 'Perbarui Produk';
+    
+    // Fill fields
+    for (const key in editData) {
+        if (document.getElementById(key)) document.getElementById(key).value = editData[key];
+    }
+    
+    // Set Jenis button
+    document.getElementById('jenis').value = editData.jenis;
+    document.querySelectorAll('.jenis-btns button').forEach(b => {
+      b.classList.remove('selected');
+      if (b.getAttribute('data-jenis') === editData.jenis) {
+        b.classList.add('selected');
+      }
+    });
+
+    // Set images
+    const previewProfil = document.getElementById('previewProfil');
+    const previewBg = document.getElementById('previewBg');
+    if(editData.gambarProfil){previewProfil.src=editData.gambarProfil;previewProfil.style.display='block';} else {previewProfil.style.display='none';}
+    if(editData.gambarBg){previewBg.src=editData.gambarBg;previewBg.style.display='block';} else {previewBg.style.display='none';}
+    
+  } else {
+    resetForm();
+  }
+}
+
+function resetEdit(){
+  localStorage.removeItem('produkEdit');
+  localStorage.removeItem('produkEditIndex');
+  localStorage.removeItem('editMode');
+  resetForm();
+  checkEditMode();
+}
+
+function navigateToInput(jenis = null) {
+  resetEdit();
+  if (jenis) {
+    document.getElementById('jenis').value = jenis;
+    document.querySelectorAll('.jenis-btns button').forEach(b => {
+      b.classList.remove('selected');
+      if (b.getAttribute('data-jenis') === jenis) {
+        b.classList.add('selected');
+      }
+    });
+  }
+  navigateDashboard('input');
+}
+
+document.getElementById('produkForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const jenis = document.getElementById('jenis').value;
+  if (!jenis) return alert('Pilih jenis kopi terlebih dahulu!');
+
+  let gambarProfil = document.getElementById('previewProfil').src.includes('data:') ? document.getElementById('previewProfil').src : '';
+  let gambarBg = document.getElementById('previewBg').src.includes('data:') ? document.getElementById('previewBg').src : '';
+
+  const newProfil = await fileToDataUrl(document.getElementById('gambarProfilFile'));
+  if (newProfil) gambarProfil = newProfil;
+  else if (!gambarProfil && !editMode) return alert('Gambar Profil wajib diisi!');
+
+  const newBg = await fileToDataUrl(document.getElementById('gambarBgFile'));
+  if (newBg) gambarBg = newBg;
+
+  // Manual check for required fields not covered by HTML5 required attribute
+  if (!document.getElementById('nama').value.trim() || !document.getElementById('asal').value.trim() || !document.getElementById('harga').value.trim() || !document.getElementById('deskripsi').value.trim() || !document.getElementById('keasaman').value || !document.getElementById('body').value) {
+      return alert('Pastikan semua field yang wajib terisi!');
+  }
+
+
+  const produk = {
+    nama: document.getElementById('nama').value.trim(),
+    jenis,
+    grade: document.getElementById('grade').value.trim(),
+    asal: document.getElementById('asal').value.trim(),
+    harga: document.getElementById('harga').value.trim(),
+    moisture: document.getElementById('moisture').value.trim(),
+    defect: document.getElementById('defect').value.trim(),
+    ukuran: document.getElementById('ukuran').value.trim(),
+    deskripsi: document.getElementById('deskripsi').value.trim(),
+    aroma: document.getElementById('aroma').value.trim(),
+    rasa: document.getElementById('rasa').value.trim(),
+    keasaman: document.getElementById('keasaman').value,
+    body: document.getElementById('body').value,
+    gambarProfil,
+    gambarBg,
+    tanggal: Date.now()
+  };
+
+  data = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+  
+  if (editMode && editIndex !== null) {
+    // Cari index produk di array GLOBAL
+    const productToEdit = JSON.parse(localStorage.getItem('produkEdit'));
+    // Gunakan nama dan tanggal sebagai ID unik
+    const globalIndex = data.findIndex(p => p.nama === productToEdit.nama && p.tanggal === productToEdit.tanggal);
+
+    if (globalIndex > -1) {
+        data[globalIndex] = produk;
+        alert('Produk berhasil diperbarui!');
+    } else {
+        data.push(produk);
+        alert('Produk baru berhasil ditambahkan! (Error: Produk lama tidak ditemukan)');
+    }
+    
+  } else {
+    data.push(produk);
+    alert('Produk baru berhasil ditambahkan!');
+  }
+
+  localStorage.setItem(LS_KEY, JSON.stringify(data));
+  resetEdit();
+  navigateDashboard('home');
+});
+
+// --- 5. Product List Rendering (Internal & Public) ---
+function renderList(listId) {
+    const listElementId = listId.replace('page', 'produkList');
+    const list = document.getElementById(listElementId);
+    if (!list) return;
+
+    list.innerHTML = '';
+    const category = listId.includes('Mentah') ? 'Biji Kopi Mentah' : 
+                     listId.includes('Roasted') ? 'Biji Kopi Roasted' : 'Kopi Bubuk';
+
+    const filteredData = data.filter(p => p.jenis === category);
+    if (!filteredData.length) {
+        list.innerHTML = `<div style="grid-column: 1 / -1; text-align:center;color:#777; margin-top:20px;">Belum ada produk ${category} di database internal. Silakan input terlebih dahulu.</div>`;
+        return;
+    }
+
+    filteredData.forEach((p, i) => {
+        const globalIndex = data.findIndex(item => item.nama === p.nama && item.tanggal === p.tanggal);
+        const div = document.createElement('div');
+        div.className = 'card';
+
+        div.innerHTML = `
+            ${p.gambarProfil ? `<img src="${p.gambarProfil}" alt="${p.nama}" />` : ''}
+            <h3 style="margin-top:5px; margin-bottom: 5px;">${p.nama}</h3>
+            <p style="margin: 0; font-size: 14px; color:#5d4037;"><b>Asal:</b> ${p.asal}</p>
+            <p style="margin: 5px 0 10px 0; font-size: 14px; color:#5d4037;"><b>Harga:</b> ${p.harga}</p>
+            <div style="margin-top:auto; display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn-kopi" onclick="lihatDetail('${globalIndex}')">Lihat Detail</button>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-kopi-muted" style="flex:1" onclick="editProduk('${globalIndex}')">✏️ Edit</button>
+                    <button class="btn-kopi" style="flex:1; background:#d32f2f" onclick="hapusProduk('${globalIndex}')">🗑️ Hapus</button>
+                </div>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function renderPublicList() {
+    const list = document.getElementById('publicProdukList');
+    const msg = document.getElementById('listPublicMessage');
+    list.innerHTML = '';
+    
+    const publicData = data.slice(0, 9);
+    if (!data.length) {
+        msg.textContent = 'Belum ada produk di database.';
+        return;
+    }
+    msg.textContent = `Menampilkan ${publicData.length} produk terbaru. Masuk untuk melihat semua produk.`;
+
+    publicData.forEach((p, i) => {
+        const div = document.createElement('div');
+        div.className = 'card';
+
+        div.innerHTML = `
+            ${p.gambarProfil ? `<img src="${p.gambarProfil}" alt="${p.nama}" />` : ''}
+            <h3 style="margin-top:5px; margin-bottom: 5px; color: var(--brown1);">${p.nama}</h3>
+            <p style="margin: 0; font-size: 14px; color:#5d4037;">${p.jenis}</p>
+            <p style="margin: 5px 0 10px 0; font-size: 14px; color:var(--accent);"><b>Harga:</b> ${p.harga}</p>
+            <div style="margin-top:auto;">
+                <button class="btn-kopi-muted" onclick="alert('Silakan masuk ke Dashboard Internal untuk melihat detail lengkap produk ini.')">Lihat Detail Publik</button>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+// Edit Produk (menggunakan Global Index)
+function editProduk(globalIndex){
+    const produk = data[globalIndex];
+    if(produk){
+        localStorage.setItem('produkEdit', JSON.stringify(produk));
+        localStorage.setItem('produkEditIndex', globalIndex); // Simpan global index
+        localStorage.setItem('editMode', 'true');
+        navigateDashboard('input'); 
+    }
+}
+
+// Hapus Produk (menggunakan Global Index)
+function hapusProduk(globalIndex){
+    if(confirm(`Apakah Anda yakin ingin menghapus produk ${data[globalIndex].nama} ini? (Hapus Permanen)`)){
+        data.splice(globalIndex, 1);
+        localStorage.setItem(LS_KEY, JSON.stringify(data));
+        
+        // Render ulang daftar saat ini
+        if (lastDashboardPage.startsWith('pageInt')) {
+            renderList(lastDashboardPage);
+        } else {
+            navigateDashboard('home');
+        }
+    }
+}
+
+// Lihat Detail Produk (menggunakan Global Index)
+function lihatDetail(globalIndex){
+  const produk = data[globalIndex];
+  if(produk){
+    localStorage.setItem('produkDetail', JSON.stringify(produk));
+    localStorage.setItem('lastPage', lastDashboardPage); 
+    switchPage('pageDetail'); 
+    renderDetail(produk); 
+  }
+}
+
+// --- 6. Stats Update ---
+function updateStats() {
+    const total = data.length;
+    const mentahCount = data.filter(p => p.jenis === 'Biji Kopi Mentah').length;
+    const roastedCount = data.filter(p => p.jenis === 'Biji Kopi Roasted').length;
+    const bubukCount = data.filter(p => p.jenis === 'Kopi Bubuk').length;
+
+    document.getElementById('statsTotal').textContent = total;
+    document.getElementById('statsMentah').textContent = mentahCount;
+    document.getElementById('statsRoasted').textContent = roastedCount;
+    document.getElementById('statsBubuk').textContent = bubukCount;
+}
+
+// --- 7. Detail Page Logic ---
+function mapKeasamanToScore(t){t=(t||"").toLowerCase();if(t.includes('tinggi'))return 8;if(t.includes('sedang'))return 5;if(t.includes('rendah'))return 2;return 5;}
+function mapBodyToScore(t){t=(t||"").toLowerCase();if(t.includes('penuh'))return 9;if(t.includes('sedang'))return 6;if(t.includes('ringan'))return 3;return 5;}
+function analyzeAromaRasa(a,r){
+    a=(a||"").toLowerCase();r=(r||"").toLowerCase();
+    let aromaScore=5;
+    ['floral','fruity','nutty','chocolate','cocoa','caramel','herbal','spice','citrus','vanilla','berry'].forEach(k=>{
+        if(a.includes(k))aromaScore++;
+        if(r.includes(k))aromaScore+=0.6;
+    });
+    aromaScore=Math.min(10,Math.max(0,Math.round(aromaScore)));
+    let sweetness=4;
+    ['caramel','honey','sweet','sugar','chocolate','cocoa','vanilla','fruit','fruity','berry'].forEach(k=>{if(r.includes(k))sweetness+=1.5;});
+    sweetness=Math.min(10,Math.max(0,Math.round(sweetness)));
+    let balance=5;
+    if(a.length>5 && r.length>5 && Math.abs(mapKeasamanToScore(a)-mapBodyToScore(r))<4) balance=9;
+    else if(Math.abs(mapKeasamanToScore(a)-mapBodyToScore(r))<8) balance=7;
+    return {aromaScore,sweetness,balance};
+}
+
+
+function renderDetail(produk){
+  if(!produk) {
+      produk = JSON.parse(localStorage.getItem('produkDetail'));
+      if (!produk) return;
+  }
+  
+  document.getElementById('detailImg').src = produk.gambarProfil || '';
+  document.getElementById('detailJenis').textContent = produk.jenis;
+  document.getElementById('detailNama').textContent = produk.nama;
+  document.getElementById('detailAsal').textContent = `Dari ${produk.asal}`;
+  document.getElementById('detailDeskripsi').textContent = produk.deskripsi;
+  document.getElementById('detailTanggal').textContent = new Date(produk.tanggal).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
+
+  // Clear previous content
+  const metaContainer = document.getElementById('metaContainer');
+  metaContainer.innerHTML = '';
+  const detailList = document.getElementById('detailList');
+  detailList.innerHTML = '';
+  
+  // Meta Pills
+  [produk.grade, produk.ukuran, produk.keasaman, produk.body].forEach(p => {
+    if (p) metaContainer.innerHTML += `<span class="pill">${p}</span>`;
+  });
+  
+  // Detail List
+  const detailItems = [
+    { label: 'Grade Kualitas', value: produk.grade },
+    { label: 'Harga Jual', value: produk.harga },
+    { label: 'Ukuran Biji/Gilingan', value: produk.ukuran },
+    { label: 'Kadar Air (Green Bean)', value: produk.moisture },
+    { label: 'Defect Rate (Green Bean)', value: produk.defect },
+    { label: 'Keasaman', value: produk.keasaman },
+    { label: 'Body (Kekentalan)', value: produk.body },
+    { label: 'Aroma Notes', value: produk.aroma },
+    { label: 'Taste Notes', value: produk.rasa },
+  ];
+  
+  detailItems.forEach(item => {
+    if (item.value) {
+      detailList.innerHTML += `<dt>${item.label}:</dt><dd>${item.value}</dd>`;
+    }
+  });
+
+  // Background Image 
+  document.getElementById('pageDetail').style.backgroundImage = produk.gambarBg ? `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('${produk.gambarBg}')` : 'linear-gradient(180deg,#071029 0%,#071827 60%)';
+
+  // Flavor Chart
+  const { aromaScore, sweetness, balance } = analyzeAromaRasa(produk.aroma, produk.rasa);
+  const keasamanScore = mapKeasamanToScore(produk.keasaman);
+  const bodyScore = mapBodyToScore(produk.body);
+
+  if (chartInstance) chartInstance.destroy();
+  const ctx = document.getElementById('flavorChart').getContext('2d');
+  
+  chartInstance = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['Aroma', 'Sweetness', 'Acidity', 'Body', 'Balance'],
+      datasets: [{
+        label: 'Profil Rasa',
+        data: [aromaScore, sweetness, keasamanScore, bodyScore, balance],
+        backgroundColor: 'rgba(255, 165, 0, 0.2)',
+        borderColor: 'rgb(255, 165, 0)',
+        pointBackgroundColor: 'rgb(255, 165, 0)',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: 'rgb(255, 165, 0)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        r: {
+          angleLines: { color: 'rgba(255,255,255,0.1)' },
+          grid: { color: 'rgba(255,255,255,0.1)' },
+          pointLabels: { color: '#e6eef8' },
+          suggestedMin: 0,
+          suggestedMax: 10,
+          ticks: { backdropColor: '#071029', color: '#94a3b8' }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (context) => context.dataset.label + ': ' + context.parsed.r } }
+      }
+    }
+  });
+  
+  // QR Code
+  const qrContainer = document.getElementById('qrContainer');
+  qrContainer.innerHTML = '';
+  const slug = produk.nama.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g,'');
+  const url = `https://kopi.id/produk/${slug}`; 
+  new QRCode(qrContainer, { text: url, width: 160, height: 160, colorDark: "#000000", colorLight: "#ffffff" });
+
+  // QR Download Button
+  const downloadContainer = document.getElementById('downloadContainer');
+  downloadContainer.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.textContent = "📥 Unduh QR Produk";
+  btn.style.cssText = "background:#d7b899;color:#3e2723;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;";
+  btn.onclick = () => {
+    const img = qrContainer.querySelector("img") || qrContainer.querySelector("canvas");
+    if(img){
+      const a = document.createElement('a');
+      a.href = img.src || img.toDataURL("image/png");
+      a.download = slug + "-qr.png";
+      a.click();
+    }
+  };
+  downloadContainer.appendChild(btn);
+}
+
+// Button Kembali on Detail Page
+document.getElementById('btnKembaliDetail').addEventListener('click', () => {
+  const last = localStorage.getItem('lastPage') || 'home';
+  switchPage('pageDashboard');
+  navigateDashboard(last);
+});
+
+
+// --- 8. Initialization and Global Handlers ---
+
+function logout() {
+    localStorage.removeItem('produkEdit');
+    localStorage.removeItem('produkEditIndex');
+    localStorage.removeItem('editMode');
+    switchPage('pageLogin');
+    alert('Anda telah keluar dari Dashboard Internal.');
+}
+
+window.addEventListener('load', () => {
+    switchPage('pageLogin');
+    
+    // Check if on the input page from an edit action on initial load
+    if(localStorage.getItem('editMode') === 'true' && window.location.hash.includes('input')) {
+        switchPage('pageDashboard');
+        navigateDashboard('input');
+    }
+});
+
+// Update data on initial load
+data = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+updateStats();
+renderPublicList();
+</script>
+
+</body>
+</html>
