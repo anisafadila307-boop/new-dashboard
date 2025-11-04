@@ -572,13 +572,76 @@
 
 
 <script>
-const LS_KEY = 'produkKopiLengkap_v3';
-let data = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
-let chartInstance = null;
-let currentPage = 'pageLogin'; 
-let lastDashboardPage = 'home'; 
+/* ======================================================
+   JAVASCRIPT INTEGRATED WITH FIREBASE Realtime (produkkopi)
+   - Full CRUD (Create, Read, Update, Delete)
+   - Keeps localStorage as cache
+   - Keeps UI and login as original
+   ====================================================== */
 
-// --- 1. Global Page Switching (SPA Logic) ---
+// ---- Config / Globals ----
+const LS_KEY = 'produkKopiLengkap_v3';
+let data = []; // will hold array of produk with _id (firebase key)
+let chartInstance = null;
+let currentPage = 'pageLogin';
+let lastDashboardPage = 'home';
+
+// --- Firebase SDK (modular) ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDMvghyV0Y2sL4mHhCx_KsTdCv-BIZ-orc",
+  authDomain: "dashboardnew-aeki.firebaseapp.com",
+  databaseURL: "https://dashboardnew-aeki-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dashboardnew-aeki",
+  storageBucket: "dashboardnew-aeki.firebasestorage.app",
+  messagingSenderId: "759120529021",
+  appId: "1:759120529021:web:8e1cdca459ee46dfbf9314",
+  measurementId: "G-X3MYR0JXHG"
+};
+
+async function loadFirebaseModuleAndInit(){
+  const mod = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+  const databaseMod = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
+  const { initializeApp } = mod;
+  const { getDatabase, ref, push, set, get, child, remove, update } = databaseMod;
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  // expose helpers to global
+  window.__fb = { db, ref, push, set, get, child, remove, update };
+  // initial fetch
+  await fetchAllFromFirebase();
+}
+
+// --- Helper: read file input to data URL ---
+function fileToDataUrl(fileInput) {
+  return new Promise((resolve, reject) => {
+    if (!fileInput.files || fileInput.files.length === 0) return resolve(null);
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(fileInput.files[0]);
+  });
+}
+
+// --- Image preview setup ---
+function setupImagePreview(fileInputId, previewId) {
+  const fileInput = document.getElementById(fileInputId);
+  const preview = document.getElementById(previewId);
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files && fileInput.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    }
+  });
+}
+setupImagePreview('gambarProfilFile', 'previewProfil');
+setupImagePreview('gambarBgFile', 'previewBg');
+
+// --- UI Navigation / Pages ---
 function switchPage(targetId) {
     document.querySelectorAll('.main-page').forEach(p => p.classList.add('hidden'));
     const target = document.getElementById(targetId);
@@ -587,11 +650,9 @@ function switchPage(targetId) {
         currentPage = targetId;
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        // Ubah background body untuk Detail Page
         document.body.style.background = targetId === 'pageDetail' ? 'none' : 'var(--bg)';
         document.body.style.fontFamily = targetId === 'pageDetail' ? "'Segoe UI', sans-serif" : '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial';
 
-        // Re-render the lists and stats when switching to the dashboard
         if (targetId === 'pageDashboard') {
             updateStats();
             navigateDashboard(lastDashboardPage);
@@ -602,48 +663,34 @@ function switchPage(targetId) {
     }
 }
 
-// --- 2. Dashboard Internal Navigation ---
 function navigateDashboard(pageId) {
-    // Navigasi ke Halaman Daftar Produk (pageIntMentah, etc.)
     if (pageId.startsWith('pageInt')) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); // Hide internal tabs
-        
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         const target = document.getElementById(pageId);
         if (target) {
-            // Show the product list page
-            target.classList.add('active'); // Add active to show it as a page content
+            target.classList.add('active');
             lastDashboardPage = pageId;
             renderList(pageId);
         }
-
-        // Deactivate all nav links, as product lists are nested views
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
         return;
     }
-    
-    // Navigasi ke Tab Internal (home, produk, input)
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     const target = document.getElementById(pageId);
     if (target) {
         target.classList.add('active');
         lastDashboardPage = pageId;
     }
-
-    // Update Nav Link Active State
     document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
     const navLink = document.getElementById('nav' + pageId.charAt(0).toUpperCase() + pageId.slice(1));
     if (navLink) navLink.classList.add('active');
-    
-    // Untuk halaman input, periksa mode edit
     if (pageId === 'input') {
         checkEditMode();
     }
-    
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-
-// --- 3. Login Logic ---
+// --- Login ---
 function openLoginModal(){
     const tpl = document.getElementById('modalTemplate');
     const node = tpl.content.cloneNode(true);
@@ -673,38 +720,9 @@ document.addEventListener('submit', (e) => {
     }
 });
 
-
-// --- 4. Form Input/Edit Logic ---
-let editMode = localStorage.getItem('editMode') === 'true';
-let editIndex = localStorage.getItem('produkEditIndex') ? parseInt(localStorage.getItem('produkEditIndex')) : null;
-
-function fileToDataUrl(fileInput) {
-  return new Promise((resolve, reject) => {
-    if (!fileInput.files || fileInput.files.length === 0) return resolve(null);
-    const reader = new FileReader();
-    reader.onload = e => resolve(e.target.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(fileInput.files[0]);
-  });
-}
-
-function setupImagePreview(fileInputId, previewId) {
-  const fileInput = document.getElementById(fileInputId);
-  const preview = document.getElementById(previewId);
-
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files && fileInput.files[0]) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        preview.src = e.target.result;
-        preview.style.display = 'block';
-      };
-      reader.readAsDataURL(fileInput.files[0]);
-    }
-  });
-}
-setupImagePreview('gambarProfilFile', 'previewProfil');
-setupImagePreview('gambarBgFile', 'previewBg');
+// --- Form / Edit state ---
+let editMode = false;
+let editKey = null; // firebase key
 
 document.querySelectorAll('.jenis-btns button').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -729,7 +747,7 @@ function resetForm() {
 function checkEditMode() {
   const editData = JSON.parse(localStorage.getItem('produkEdit'));
   editMode = localStorage.getItem('editMode') === 'true';
-  editIndex = localStorage.getItem('produkEditIndex') ? parseInt(localStorage.getItem('produkEditIndex')) : null;
+  editKey = localStorage.getItem('produkkopiEditKey') || null;
   
   const formTitle = document.getElementById('formTitle');
   const submitButton = document.getElementById('submitButton');
@@ -738,12 +756,10 @@ function checkEditMode() {
     formTitle.textContent = `Edit Produk: ${editData.nama}`;
     submitButton.textContent = 'Perbarui Produk';
     
-    // Fill fields
     for (const key in editData) {
         if (document.getElementById(key)) document.getElementById(key).value = editData[key];
     }
     
-    // Set Jenis button
     document.getElementById('jenis').value = editData.jenis;
     document.querySelectorAll('.jenis-btns button').forEach(b => {
       b.classList.remove('selected');
@@ -752,7 +768,6 @@ function checkEditMode() {
       }
     });
 
-    // Set images
     const previewProfil = document.getElementById('previewProfil');
     const previewBg = document.getElementById('previewBg');
     if(editData.gambarProfil){previewProfil.src=editData.gambarProfil;previewProfil.style.display='block';} else {previewProfil.style.display='none';}
@@ -765,8 +780,10 @@ function checkEditMode() {
 
 function resetEdit(){
   localStorage.removeItem('produkEdit');
-  localStorage.removeItem('produkEditIndex');
+  localStorage.removeItem('produkkopiEditKey');
   localStorage.removeItem('editMode');
+  editMode = false;
+  editKey = null;
   resetForm();
   checkEditMode();
 }
@@ -785,6 +802,69 @@ function navigateToInput(jenis = null) {
   navigateDashboard('input');
 }
 
+// --- Firebase CRUD helpers ---
+async function fetchAllFromFirebase(){
+  try {
+    const { db, ref, get, child } = window.__fb;
+    const snapshot = await get(child(ref(db), 'produkkopi'));
+    if (snapshot.exists()) {
+      const raw = snapshot.val();
+      data = Object.keys(raw).map(k => ({ ...raw[k], _id: k }));
+      // optional: sort by tanggal desc
+      data.sort((a,b)=> (b.tanggal||0) - (a.tanggal||0));
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+    } else {
+      data = [];
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+    }
+    updateStats();
+    renderPublicList();
+    // re-render current dashboard list if open
+    if (currentPage === 'pageDashboard' && lastDashboardPage.startsWith('pageInt')) {
+        renderList(lastDashboardPage);
+    }
+  } catch (err) {
+    console.error('fetchAllFromFirebase error', err);
+    // fallback to localStorage if firebase fails
+    data = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+    updateStats();
+    renderPublicList();
+  }
+}
+
+async function createProdukInFirebase(produk){
+  try {
+    const { db, ref, push, set } = window.__fb;
+    const newRef = push(ref(db, 'produkkopi'));
+    await set(newRef, produk);
+    return newRef.key;
+  } catch (err) {
+    console.error('createProdukInFirebase', err);
+    throw err;
+  }
+}
+
+async function updateProdukInFirebase(key, produk){
+  try {
+    const { db, ref, update } = window.__fb;
+    await update(ref(db, 'produkkopi/' + key), produk);
+  } catch (err) {
+    console.error('updateProdukInFirebase', err);
+    throw err;
+  }
+}
+
+async function deleteProdukInFirebase(key){
+  try {
+    const { db, ref, remove } = window.__fb;
+    await remove(ref(db, 'produkkopi/' + key));
+  } catch (err) {
+    console.error('deleteProdukInFirebase', err);
+    throw err;
+  }
+}
+
+// --- Form submit handler (create/update) ---
 document.getElementById('produkForm').addEventListener('submit', async e => {
   e.preventDefault();
   const jenis = document.getElementById('jenis').value;
@@ -800,11 +880,9 @@ document.getElementById('produkForm').addEventListener('submit', async e => {
   const newBg = await fileToDataUrl(document.getElementById('gambarBgFile'));
   if (newBg) gambarBg = newBg;
 
-  // Manual check for required fields not covered by HTML5 required attribute
   if (!document.getElementById('nama').value.trim() || !document.getElementById('asal').value.trim() || !document.getElementById('harga').value.trim() || !document.getElementById('deskripsi').value.trim() || !document.getElementById('keasaman').value || !document.getElementById('body').value) {
       return alert('Pastikan semua field yang wajib terisi!');
   }
-
 
   const produk = {
     nama: document.getElementById('nama').value.trim(),
@@ -825,33 +903,23 @@ document.getElementById('produkForm').addEventListener('submit', async e => {
     tanggal: Date.now()
   };
 
-  data = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
-  
-  if (editMode && editIndex !== null) {
-    // Cari index produk di array GLOBAL
-    const productToEdit = JSON.parse(localStorage.getItem('produkEdit'));
-    // Gunakan nama dan tanggal sebagai ID unik
-    const globalIndex = data.findIndex(p => p.nama === productToEdit.nama && p.tanggal === productToEdit.tanggal);
-
-    if (globalIndex > -1) {
-        data[globalIndex] = produk;
-        alert('Produk berhasil diperbarui!');
+  try {
+    if (editMode && editKey) {
+      await updateProdukInFirebase(editKey, produk);
+      alert('✅ Produk berhasil diperbarui di Firebase!');
     } else {
-        data.push(produk);
-        alert('Produk baru berhasil ditambahkan! (Error: Produk lama tidak ditemukan)');
+      await createProdukInFirebase(produk);
+      alert('✅ Produk baru berhasil ditambahkan ke Firebase!');
     }
-    
-  } else {
-    data.push(produk);
-    alert('Produk baru berhasil ditambahkan!');
+    await fetchAllFromFirebase();
+    resetEdit();
+    navigateDashboard('home');
+  } catch (err) {
+    alert('Gagal menyimpan ke Firebase: ' + (err.message || err));
   }
-
-  localStorage.setItem(LS_KEY, JSON.stringify(data));
-  resetEdit();
-  navigateDashboard('home');
 });
 
-// --- 5. Product List Rendering (Internal & Public) ---
+// --- Render lists ---
 function renderList(listId) {
     const listElementId = listId.replace('page', 'produkList');
     const list = document.getElementById(listElementId);
@@ -868,7 +936,6 @@ function renderList(listId) {
     }
 
     filteredData.forEach((p, i) => {
-        const globalIndex = data.findIndex(item => item.nama === p.nama && item.tanggal === p.tanggal);
         const div = document.createElement('div');
         div.className = 'card';
 
@@ -878,10 +945,10 @@ function renderList(listId) {
             <p style="margin: 0; font-size: 14px; color:#5d4037;"><b>Asal:</b> ${p.asal}</p>
             <p style="margin: 5px 0 10px 0; font-size: 14px; color:#5d4037;"><b>Harga:</b> ${p.harga}</p>
             <div style="margin-top:auto; display: flex; flex-direction: column; gap: 8px;">
-                <button class="btn-kopi" onclick="lihatDetail('${globalIndex}')">Lihat Detail</button>
+                <button class="btn-kopi" onclick="lihatDetail('${p._id}')">Lihat Detail</button>
                 <div style="display:flex; gap:8px;">
-                    <button class="btn-kopi-muted" style="flex:1" onclick="editProduk('${globalIndex}')">✏️ Edit</button>
-                    <button class="btn-kopi" style="flex:1; background:#d32f2f" onclick="hapusProduk('${globalIndex}')">🗑️ Hapus</button>
+                    <button class="btn-kopi-muted" style="flex:1" onclick="editProduk('${p._id}')">✏️ Edit</button>
+                    <button class="btn-kopi" style="flex:1; background:#d32f2f" onclick="hapusProduk('${p._id}')">🗑️ Hapus</button>
                 </div>
             </div>
         `;
@@ -918,35 +985,34 @@ function renderPublicList() {
     });
 }
 
-// Edit Produk (menggunakan Global Index)
-function editProduk(globalIndex){
-    const produk = data[globalIndex];
+// --- Edit/Delete/Detail handlers ---
+function editProduk(key){
+    const produk = data.find(d => d._id === key);
     if(produk){
         localStorage.setItem('produkEdit', JSON.stringify(produk));
-        localStorage.setItem('produkEditIndex', globalIndex); // Simpan global index
+        localStorage.setItem('produkkopiEditKey', key);
         localStorage.setItem('editMode', 'true');
+        editMode = true;
+        editKey = key;
         navigateDashboard('input'); 
     }
 }
 
-// Hapus Produk (menggunakan Global Index)
-function hapusProduk(globalIndex){
-    if(confirm(`Apakah Anda yakin ingin menghapus produk ${data[globalIndex].nama} ini? (Hapus Permanen)`)){
-        data.splice(globalIndex, 1);
-        localStorage.setItem(LS_KEY, JSON.stringify(data));
-        
-        // Render ulang daftar saat ini
-        if (lastDashboardPage.startsWith('pageInt')) {
-            renderList(lastDashboardPage);
-        } else {
-            navigateDashboard('home');
-        }
+async function hapusProduk(key){
+    if(!confirm('Yakin ingin menghapus produk ini? (tidak bisa dibatalkan)')) return;
+    try {
+      await deleteProdukInFirebase(key);
+      alert('Produk dihapus dari Firebase.');
+      await fetchAllFromFirebase();
+      if (lastDashboardPage.startsWith('pageInt')) renderList(lastDashboardPage);
+      else navigateDashboard('home');
+    } catch (err) {
+      alert('Gagal hapus: ' + (err.message || err));
     }
 }
 
-// Lihat Detail Produk (menggunakan Global Index)
-function lihatDetail(globalIndex){
-  const produk = data[globalIndex];
+function lihatDetail(key){
+  const produk = data.find(d => d._id === key);
   if(produk){
     localStorage.setItem('produkDetail', JSON.stringify(produk));
     localStorage.setItem('lastPage', lastDashboardPage); 
@@ -955,7 +1021,7 @@ function lihatDetail(globalIndex){
   }
 }
 
-// --- 6. Stats Update ---
+// --- Stats ---
 function updateStats() {
     const total = data.length;
     const mentahCount = data.filter(p => p.jenis === 'Biji Kopi Mentah').length;
@@ -968,7 +1034,7 @@ function updateStats() {
     document.getElementById('statsBubuk').textContent = bubukCount;
 }
 
-// --- 7. Detail Page Logic ---
+// --- Detail page logic (same as before) ---
 function mapKeasamanToScore(t){t=(t||"").toLowerCase();if(t.includes('tinggi'))return 8;if(t.includes('sedang'))return 5;if(t.includes('rendah'))return 2;return 5;}
 function mapBodyToScore(t){t=(t||"").toLowerCase();if(t.includes('penuh'))return 9;if(t.includes('sedang'))return 6;if(t.includes('ringan'))return 3;return 5;}
 function analyzeAromaRasa(a,r){
@@ -988,7 +1054,6 @@ function analyzeAromaRasa(a,r){
     return {aromaScore,sweetness,balance};
 }
 
-
 function renderDetail(produk){
   if(!produk) {
       produk = JSON.parse(localStorage.getItem('produkDetail'));
@@ -1002,18 +1067,15 @@ function renderDetail(produk){
   document.getElementById('detailDeskripsi').textContent = produk.deskripsi;
   document.getElementById('detailTanggal').textContent = new Date(produk.tanggal).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
 
-  // Clear previous content
   const metaContainer = document.getElementById('metaContainer');
   metaContainer.innerHTML = '';
   const detailList = document.getElementById('detailList');
   detailList.innerHTML = '';
   
-  // Meta Pills
   [produk.grade, produk.ukuran, produk.keasaman, produk.body].forEach(p => {
     if (p) metaContainer.innerHTML += `<span class="pill">${p}</span>`;
   });
   
-  // Detail List
   const detailItems = [
     { label: 'Grade Kualitas', value: produk.grade },
     { label: 'Harga Jual', value: produk.harga },
@@ -1032,10 +1094,8 @@ function renderDetail(produk){
     }
   });
 
-  // Background Image 
   document.getElementById('pageDetail').style.backgroundImage = produk.gambarBg ? `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('${produk.gambarBg}')` : 'linear-gradient(180deg,#071029 0%,#071827 60%)';
 
-  // Flavor Chart
   const { aromaScore, sweetness, balance } = analyzeAromaRasa(produk.aroma, produk.rasa);
   const keasamanScore = mapKeasamanToScore(produk.keasaman);
   const bodyScore = mapBodyToScore(produk.body);
@@ -1078,14 +1138,12 @@ function renderDetail(produk){
     }
   });
   
-  // QR Code
   const qrContainer = document.getElementById('qrContainer');
   qrContainer.innerHTML = '';
   const slug = produk.nama.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g,'');
   const url = `https://kopi.id/produk/${slug}`; 
   new QRCode(qrContainer, { text: url, width: 160, height: 160, colorDark: "#000000", colorLight: "#ffffff" });
 
-  // QR Download Button
   const downloadContainer = document.getElementById('downloadContainer');
   downloadContainer.innerHTML = '';
   const btn = document.createElement('button');
@@ -1103,40 +1161,49 @@ function renderDetail(produk){
   downloadContainer.appendChild(btn);
 }
 
-// Button Kembali on Detail Page
+// back button detail
 document.getElementById('btnKembaliDetail').addEventListener('click', () => {
   const last = localStorage.getItem('lastPage') || 'home';
   switchPage('pageDashboard');
   navigateDashboard(last);
 });
 
-
-// --- 8. Initialization and Global Handlers ---
-
+// logout
 function logout() {
     localStorage.removeItem('produkEdit');
-    localStorage.removeItem('produkEditIndex');
+    localStorage.removeItem('produkkopiEditKey');
     localStorage.removeItem('editMode');
     switchPage('pageLogin');
     alert('Anda telah keluar dari Dashboard Internal.');
 }
 
-window.addEventListener('load', () => {
+// initialization
+window.addEventListener('load', async () => {
     switchPage('pageLogin');
-    
-    // Check if on the input page from an edit action on initial load
+    // initialize firebase modules and fetch data
+    try {
+      await loadFirebaseModuleAndInit();
+    } catch (err) {
+      console.warn('Firebase init failed, falling back to localStorage', err);
+      data = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+      updateStats();
+      renderPublicList();
+    }
+
     if(localStorage.getItem('editMode') === 'true' && window.location.hash.includes('input')) {
         switchPage('pageDashboard');
         navigateDashboard('input');
     }
 });
 
-// Update data on initial load
-data = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
-updateStats();
-renderPublicList();
+// update data on init
+(async()=>{
+  data = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+  updateStats();
+  renderPublicList();
+})();
+
 </script>
 
 </body>
-
 </html>
